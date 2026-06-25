@@ -1,11 +1,12 @@
-/* MapView – Service Worker v2 */
-const CACHE = 'mapview-v2';
+/* MapView – Service Worker v3 */
+const CACHE = 'mapview-v3';
+const BASE = '/Maps1100/';
 const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json',
+  BASE + 'icons/icon-192.png',
+  BASE + 'icons/icon-512.png',
 ];
 
 self.addEventListener('install', e => {
@@ -29,7 +30,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
-  // Tiles de mapa: sempre network, nunca cache (evita encher a cota)
+  // Tiles e libs externas: sempre network
   if (url.includes('tile.openstreetmap') ||
       url.includes('arcgisonline') ||
       url.includes('opentopomap') ||
@@ -51,7 +52,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => caches.match('./index.html'));
+      }).catch(() => caches.match(BASE + 'index.html'));
     })
   );
 });
