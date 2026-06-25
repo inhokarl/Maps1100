@@ -1,13 +1,14 @@
 {
-  "name": "MapView – KMZ & KML Reader",
-  "short_name": "MapView",
-  "description": "Leitor de arquivos KMZ e KML com navegação e integração com Google Maps",
-  "start_url": "/Maps1100/",
+  "name": "Maps1100",
+  "short_name": "Maps1100",
+  "description": "Leitor de arquivos KMZ e KML",
+  "start_url": "/Maps1100/index.html",
   "scope": "/Maps1100/",
   "display": "standalone",
   "background_color": "#0f1720",
   "theme_color": "#1a2332",
   "orientation": "any",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -33,8 +34,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "categories": ["maps", "navigation", "utilities"],
-  "lang": "pt-BR",
-  "prefer_related_applications": false
+  ]
 }
