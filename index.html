@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a2332" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MapView" />
+  <meta name="description" content="Leitor de arquivos KMZ e KML com navegação e integração com Google Maps" />
+  <title>MapView – KMZ & KML Reader</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- JSZip for KMZ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<!-- SPLASH / LOADING -->
+<div id="splash">
+  <div class="splash-inner">
+    <div class="splash-icon">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="28" r="14" stroke="#4fc3f7" stroke-width="3" fill="none"/>
+        <circle cx="32" cy="28" r="5" fill="#4fc3f7"/>
+        <path d="M32 42 C32 42 18 56 18 62" stroke="#4fc3f7" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M32 42 C32 42 46 56 46 62" stroke="#4fc3f7" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M18 62 L46 62" stroke="#4fc3f7" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1>MapView</h1>
+    <p>KMZ & KML Reader</p>
+    <div class="splash-spinner"></div>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<header id="topbar">
+  <button id="btn-sidebar" class="icon-btn" title="Menu" aria-label="Abrir menu">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <div id="topbar-title">
+    <span id="current-file-name">MapView</span>
+  </div>
+  <div class="topbar-actions">
+    <button id="btn-upload" class="icon-btn" title="Abrir arquivo KMZ/KML" aria-label="Abrir arquivo">
+      <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button id="btn-fit" class="icon-btn" title="Ajustar ao mapa" aria-label="Centralizar mapa">
+      <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M4 16v3a1 1 0 0 0 1 1h3m9-16h3a1 1 0 0 1 1 1v3m-4 12h3a1 1 0 0 0 1-1v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button id="btn-search" class="icon-btn" title="Buscar" aria-label="Buscar ponto">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <input type="file" id="file-input" accept=".kml,.kmz" multiple hidden />
+</header>
+
+<!-- SIDEBAR -->
+<aside id="sidebar" class="closed">
+  <div class="sidebar-header">
+    <h2>Arquivos</h2>
+    <button id="btn-close-sidebar" class="icon-btn" aria-label="Fechar menu">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- Files list -->
+  <div id="files-section">
+    <div class="sidebar-section-title">
+      <span>Arquivos carregados</span>
+      <button id="btn-add-file" class="add-btn" title="Adicionar arquivo">+</button>
+    </div>
+    <ul id="file-list"></ul>
+    <div id="no-files" class="empty-state">
+      <svg viewBox="0 0 48 48"><path d="M8 40V12a2 2 0 0 1 2-2h16l8 8v22a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2Z" stroke="#4fc3f7" stroke-width="2" fill="none"/><path d="M26 10v8h8" stroke="#4fc3f7" stroke-width="2" stroke-linejoin="round" fill="none"/></svg>
+      <p>Nenhum arquivo carregado</p>
+      <button id="btn-drop-hint" class="cta-btn">Abrir KMZ / KML</button>
+    </div>
+  </div>
+
+  <!-- Layer tree -->
+  <div id="layers-section" class="hidden">
+    <div class="sidebar-section-title">
+      <span>Camadas</span>
+      <button id="btn-collapse-all" class="small-btn">Recolher</button>
+    </div>
+    <div id="layer-tree"></div>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats-bar">
+    <span id="stat-points">0 pontos</span>
+    <span id="stat-lines">0 linhas</span>
+    <span id="stat-polygons">0 polígonos</span>
+  </div>
+
+  <!-- Base map selector -->
+  <div class="sidebar-section-title" style="margin-top:8px;">Mapa base</div>
+  <div id="basemap-selector">
+    <button class="basemap-btn active" data-basemap="osm">Padrão</button>
+    <button class="basemap-btn" data-basemap="satellite">Satélite</button>
+    <button class="basemap-btn" data-basemap="topo">Topográfico</button>
+    <button class="basemap-btn" data-basemap="dark">Escuro</button>
+  </div>
+</aside>
+<div id="sidebar-overlay" class="hidden"></div>
+
+<!-- SEARCH BAR -->
+<div id="search-bar" class="hidden">
+  <div class="search-inner">
+    <input type="text" id="search-input" placeholder="Buscar ponto, linha ou polígono…" autocomplete="off" />
+    <button id="btn-close-search" class="icon-btn">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <ul id="search-results"></ul>
+</div>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- DROP ZONE OVERLAY -->
+<div id="drop-overlay" class="hidden">
+  <div class="drop-message">
+    <svg viewBox="0 0 64 64"><path d="M32 16v24M20 28l12-12 12 12" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="44" width="48" height="12" rx="4" stroke="#4fc3f7" stroke-width="2" fill="none"/></svg>
+    <p>Solte o arquivo KMZ ou KML aqui</p>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div id="detail-panel" class="hidden">
+  <div class="detail-header">
+    <div class="detail-icon" id="detail-type-icon"></div>
+    <div class="detail-title-area">
+      <h3 id="detail-name">—</h3>
+      <span id="detail-type-label"></span>
+    </div>
+    <button id="btn-close-detail" class="icon-btn">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div id="detail-body">
+    <div id="detail-description"></div>
+    <div id="detail-coords"></div>
+    <table id="detail-props"></table>
+  </div>
+  <div class="detail-actions">
+    <button id="btn-google-maps" class="action-btn primary">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/></svg>
+      Abrir no Google Maps
+    </button>
+    <button id="btn-copy-coords" class="action-btn secondary">
+      <svg viewBox="0 0 24 24" width="18" height="18"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/></svg>
+      Copiar coordenadas
+    </button>
+    <button id="btn-go-to" class="action-btn secondary">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      Ir ao local
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- FAB -->
+<button id="fab-location" class="fab" title="Minha localização" aria-label="Minha localização">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 2" fill="none"/></svg>
+</button>
+
+<script src="js/app.js"></script>
+</body>
+</html>
